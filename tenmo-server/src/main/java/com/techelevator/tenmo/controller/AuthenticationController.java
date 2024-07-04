@@ -37,7 +37,7 @@ public class AuthenticationController {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
         this.userDao = userDao;
     }
-
+// /users /request /send
     @RequestMapping(path = "/login", method = RequestMethod.POST)
     public LoginResponseDto login(@Valid @RequestBody LoginDto loginDto) {
 

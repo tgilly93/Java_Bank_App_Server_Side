@@ -29,6 +29,7 @@ public class TransferRequestController {
         this.userDao = userDao;
     }
 
+    //this needs to pass the user id's not the user names
     @PostMapping
     public Transfer requestTransfer(@Valid @RequestBody Transfer transferRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -44,6 +45,7 @@ public class TransferRequestController {
         return transferRequest;
     }
 
+    //transferDao method is getPending request also.
     @GetMapping
     public List<Transfer> getPendingRequests()  {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -53,10 +53,10 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
        toAccount.setBalance(toResult);
 
         String sqlToAccount = "UPDATE public.account\n" +
-                "\tSET account_id=?, user_id=?, balance=?\n" +
+                "\tSET  balance=?\n" +
                 "\tWHERE account_id = ?;";
         String sqlFromAccount = "UPDATE public.account\n" +
-                "\tSET account_id=?, user_id=?, balance=?\n" +
+                "\tSET balance=?\n" +
                 "\tWHERE account_id = ?;";
         try{
             int rowsAffected = jdbcTemplate.update(sqlFromAccount,fromAccount.getAccountID(),fromAccount.getUserID()
@@ -74,6 +74,8 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         } catch (DataIntegrityViolationException e) {
             throw new DaoException("Data integrity violation", e);
         }
+
+        System.out.println("Transaction complete");
 
 
     }
@@ -120,7 +122,30 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         // TODO- SEND TRANSFER METHOD
     @Override
     public Transfer sendTransfer(int sendToId, int userId, BigDecimal amount) {
-        return null;
+        Transfer transfer = new Transfer();
+        String sqlIntoStatus = "INSERT INTO public.transfer_status(\n" +
+                "\ttransfer_status_desc)\n" +
+                "\tVALUES ('approved');";
+        String sqlIntoType = "INSERT INTO public.transfer_type(\n" +
+                "\ttransfer_type_desc)\n" +
+                "\tVALUES ('Send');";
+        String sqlGetAccount = "select account_id, user_id, balance from account where user_id = ?;";
+       try{
+           int statusID = jdbcTemplate.queryForObject(sqlIntoStatus,int.class);
+           int typeID = jdbcTemplate.queryForObject(sqlIntoType, int.class);
+           int fromAccountID = jdbcTemplate.queryForObject(sqlGetAccount,int.class,userId);
+           int toAccountID = jdbcTemplate.queryForObject(sqlGetAccount,int.class,sendToId);
+
+           transfer = creatTransfer(typeID,statusID,fromAccountID,toAccountID,amount);
+       }catch (CannotGetJdbcConnectionException e) {
+           throw new DaoException("Unable to connect to server or database", e);
+       } catch (DataIntegrityViolationException e) {
+           throw new DaoException("Data integrity violation", e);
+       }catch (NullPointerException e){
+           throw new DaoException("Unable to complete transaction", e);
+       }
+
+       return transfer;
     }
 
 
@@ -134,7 +159,30 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
          */
     @Override
     public Transfer requestTransfer(int requestFromID, int userId, BigDecimal amount) {
-        return null;
+        Transfer transfer = new Transfer();
+        String sqlIntoStatus = "INSERT INTO public.transfer_status(\n" +
+                "\ttransfer_status_desc)\n" +
+                "\tVALUES ('Pending');";
+        String sqlIntoType = "INSERT INTO public.transfer_type(\n" +
+                "\ttransfer_type_desc)\n" +
+                "\tVALUES ('Request');";
+        String sqlGetAccount = "select account_id, user_id, balance from account where user_id = ?;";
+        try{
+            int statusID = jdbcTemplate.queryForObject(sqlIntoStatus,int.class);
+            int typeID = jdbcTemplate.queryForObject(sqlIntoType, int.class);
+            int fromAccountID = jdbcTemplate.queryForObject(sqlGetAccount,int.class,requestFromID);
+            int toAccountID = jdbcTemplate.queryForObject(sqlGetAccount,int.class,userId);
+
+            transfer = creatTransfer(typeID,statusID,fromAccountID,toAccountID,amount);
+        }catch (CannotGetJdbcConnectionException e) {
+            throw new DaoException("Unable to connect to server or database", e);
+        } catch (DataIntegrityViolationException e) {
+            throw new DaoException("Data integrity violation", e);
+        }catch (NullPointerException e){
+            throw new DaoException("Unable to complete transaction", e);
+        }
+
+        return transfer;
     }
 
     //TODO - UPDATE TRANSFER METHOD
@@ -144,7 +192,26 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         then update the transfer_status table
         depending on status change need to updateAccount method
      */
+    public Transfer updateTransfer(Transfer transfer, String status) {
+        Transfer updatedTransfer = null;
+        String updateStatSql = "UPDATE public.transfer_status\n" +
+                "\tSET transfer_status_desc=?\n" +
+                "\tWHERE transfer_status_id=?;";
+        try {
+            int rowsAffected = jdbcTemplate.update(updateStatSql, status, transfer.getTransferStatusID());
+            if (rowsAffected == 0) {
+                throw new DaoException("Zero rows affected, expected at least one");
+            } else {
+                updatedTransfer = getTransferByID(transfer.getTransferID());
+            }
+        } catch (CannotGetJdbcConnectionException e) {
+            throw new DaoException("Unable to connect to server or database", e);
+        } catch (DataIntegrityViolationException e) {
+            throw new DaoException("Data integrity violation", e);
+        }
 
+            return updatedTransfer;
+        }
 
     @Override
     public Transfer getTransferByID(int id) {
@@ -166,15 +233,15 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
     }
 
     @Override
-    public List<Transfer> getTransfersByStatus(String status, int userID) {
+    public List<Transfer> getPendingRequests(int userID) {
         List<Transfer> transfers = new ArrayList<>();
         String sql = "SELECT transfer_id, transfer_type_id, transfer_status_id, account_from, account_to, amount\n" +
                 "\tFROM public.transfer\n" +
                 "\tjoin tenmo_user on user_id = account_from\n" +
                 "\tjoin transfer_status on transfer.transfer_status_id = transfer_status.transfer_status_id\n" +
-                "where user_id = ? and transfer_status_desc = ?;";
+                "where user_id = ? and transfer_status_desc = pending;";
         try{
-            SqlRowSet results = jdbcTemplate.queryForRowSet(sql,userID,status);
+            SqlRowSet results = jdbcTemplate.queryForRowSet(sql,userID);
             if(results.next()){
                 Transfer transfer = mapToTransfer(results);
                 transfers.add(transfer);
@@ -186,6 +253,27 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         }
 
         return transfers;
+    }
+
+    private Transfer creatTransfer(int transfer_type_id, int transfer_status_id, int account_from, int account_to, BigDecimal amount){
+        Transfer transfer = new Transfer();
+        String sql = "INSERT INTO public.transfer(\n" +
+                "\t transfer_type_id, transfer_status_id, account_from, account_to, amount)\n" +
+                "\tVALUES ( ?, ?, ?, ?, ?);";
+
+        try{
+            int newTransferID = jdbcTemplate.queryForObject(sql,int.class,transfer_status_id,transfer_type_id,account_from,
+                    account_to,amount);
+            transfer = getTransferByID(newTransferID);
+
+        } catch (CannotGetJdbcConnectionException e) {
+            throw new DaoException("Unable to connect to server or database", e);
+        } catch (DataIntegrityViolationException e) {
+            throw new DaoException("Data integrity violation", e);
+        }
+
+
+        return  transfer;
     }
 
     private Transfer mapToTransfer(SqlRowSet results) {

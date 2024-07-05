@@ -13,5 +13,5 @@ public interface TransferDao {
     Transfer requestTransfer(int requestFromID, int userId, BigDecimal amount);
 
     Transfer getTransferByID(int id);
-    List<Transfer> getTransfersByStatus(String status, int userID);
+    List<Transfer> getPendingRequests(int userID);
 }

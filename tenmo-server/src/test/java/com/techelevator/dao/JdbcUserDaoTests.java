@@ -29,7 +29,7 @@ public class JdbcUserDaoTests extends BaseDaoTests {
     public void setup() {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         userDao = new JdbcUserDao(jdbcTemplate);
-        transferDao = new JdbcTransferDao(jdbcTemplate);
+        transferDao = new JdbcTransferDao(jdbcTemplate, userDao);
     }
 
     @Test(expected = IllegalArgumentException.class)

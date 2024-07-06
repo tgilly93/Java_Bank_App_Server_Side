@@ -15,8 +15,11 @@ import java.util.List;
 public class JdbcTransferDao implements TransferDao, AccountDao{
     private final JdbcTemplate jdbcTemplate;
 
-    public JdbcTransferDao(JdbcTemplate jdbcTemplate) {
+    private  final  UserDao userDao;
+
+    public JdbcTransferDao(JdbcTemplate jdbcTemplate, UserDao userDao) {
         this.jdbcTemplate = jdbcTemplate;
+        this.userDao = userDao;
     }
 
     @Override
@@ -95,7 +98,7 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         List<Transfer> transfers = new ArrayList<>();
         String sql = "SELECT transfer_id, transfer_type_id, transfer_status_id, account_from, account_to, amount\n" +
                 "\tFROM public.transfer\n" +
-                "\tjoin tenmo_user on user_id = account_from\n" +
+                "\tjoin tenmo_user on user_id = account_from OR user_id = account_from\n" +
                 "\twhere user_id = ?;";
         try{
             SqlRowSet results = jdbcTemplate.queryForRowSet(sql, userId);
@@ -284,9 +287,11 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         transfer.setTransferStatusID(results.getInt("transfer_status_id"));
         transfer.setTransferTypeID(results.getInt("transfer_type_id"));
         transfer.setTransferID(results.getInt("transfer_id"));
+        transfer.setFromUserName(userDao.getUserByAccountID(transfer.getFromAccountID()).getUsername());
+        transfer.setToUserName(userDao.getUserByAccountID(transfer.getToAccountID()).getUsername());
 
         return transfer;
-
     }
+
 
 }

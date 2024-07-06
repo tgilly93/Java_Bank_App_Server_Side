@@ -71,6 +71,8 @@ public class TransferController {
         }
     }
     */
+
+    //this needs the user id not user name
     @GetMapping
     public List<Transfer> getTransfers() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

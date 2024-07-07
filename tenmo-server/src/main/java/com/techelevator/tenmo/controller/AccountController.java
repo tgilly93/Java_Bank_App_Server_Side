@@ -35,10 +35,17 @@ public class AccountController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
-        List<Account> accounts = accountDao.getAccountByUsername(username);
-        if (accounts.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found for user: " + username);
-            return accountDao.getAccountBalance(accounts.get(0).getAccountId);
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + username);
         }
+
+        Account account = accountDao.getAccountByID(user.getId());
+
+        if (account == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found for user: " + username);
+        }
+
+        return account.getBalance();
     }
 }

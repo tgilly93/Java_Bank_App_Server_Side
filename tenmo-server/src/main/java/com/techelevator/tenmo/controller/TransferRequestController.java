@@ -3,6 +3,7 @@ package com.techelevator.tenmo.controller;
 import com.techelevator.tenmo.dao.AccountDao;
 import com.techelevator.tenmo.dao.TransferDao;
 import com.techelevator.tenmo.dao.UserDao;
+import com.techelevator.tenmo.exception.DaoException;
 import com.techelevator.tenmo.model.Transfer;
 import com.techelevator.tenmo.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,17 +12,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 
 import javax.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/transfer-requests")
 public class TransferRequestController {
 
-    private final TransferDao transferDao;
-    private final UserDao userDao;
+    private TransferDao transferDao;
+    private UserDao userDao;
 
     @Autowired
     public TransferRequestController(TransferDao transferDao, UserDao userDao) {
@@ -41,18 +44,25 @@ public class TransferRequestController {
             throw new IllegalArgumentException("Invalid user IDs.");
         }
 
-        transferDao.requestTransfer(toUser.getUsername(), fromUser.getUsername(), transferRequest.getAmount());
+        transferDao.requestTransfer(toUser.getId(), fromUser.getId(), transferRequest.getAmount());
+
         return transferRequest;
     }
 
     //transferDao method is getPending request also.
-    @GetMapping
-    public List<Transfer> getPendingRequests()  {
+    @GetMapping("/pending-requests")
+    public List<Transfer> getPendingRequests() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
 
-        return (List<Transfer>) transferDao.getPendingRequestsByUserId(user.getId());
+        if (user == null) {
+            throw new IllegalArgumentException("Invalid user ID.");
+        }
+
+        List<Transfer> pendingRequests = transferDao.getPendingRequests(user.getId());
+
+        return pendingRequests;
     }
 
     @GetMapping("/{transferRequestId}")
@@ -61,26 +71,75 @@ public class TransferRequestController {
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
 
-        return transferDao.getTransferByID(transferRequestId.intValue(), username);
+        if (user == null) {
+            throw new IllegalArgumentException("Invalid user ID.");
+        }
+
+        Transfer transferRequest = transferDao.getTransferByID(transferRequestId.intValue());
+
+        if (transferRequest == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer request not found.");
+        }
+
+        return transferRequest;
     }
 
-    @PostMapping("/{transferRequestId}approve")
+    @PostMapping("/{transferRequestId}/approve")
     public Transfer approveTransferRequest(@PathVariable Long transferRequestId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
 
-        return transferDao.approveTransferRequest(transferRequestId.intValue(), user.getId());
-    }
+        if (user == null) {
+            throw new IllegalArgumentException("Invalid user ID.");
+        }
 
-    @PostMapping("/{transferRequestId}/reject")
-    public Transfer rejectTransferRequest(@PathVariable Long transferRequestId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        User user = userDao.getUserByUsername(username);
+        Transfer transferRequest = transferDao.getTransferByID(transferRequestId.intValue());
 
-        return transferDao.rejectTransferRequest(transferRequestId.intValue(), user.getId());
+        if (transferRequest == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer request not found.");
+        }
+
+        if (!"PENDING".equals(transferRequest.getTransferStatusID())) {
+            throw new IllegalStateException("Transfer request is already processed.");
+        }
+
+        transferRequest.setTransferStatusID(1);
+
+        return transferRequest;
     }
 }
+    /*
+    @PostMapping("/{transferId}/reject")
+    public Transfer rejectTransfer(@PathVariable int transferId) {
+
+        Transfer transfer = transferDao.getTransferByID(transferId);
+
+        if (transfer == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found.");
+        }
+
+        try {
+
+            transferDao.updateTransferStatus(transferId, "REJECTED");
+
+
+            int accountId = transfer.getFromAccountID();
+            BigDecimal amount = transfer.getAmount();
+
+            AccountDao.updateAccount(accountId, amount.negate());
+
+
+            transfer.setTransferStatusID("REJECTED");
+
+        } catch (DaoException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to reject transfer.", e);
+        }
+
+        return transfer;
+    }
+*/
+
+
 
 

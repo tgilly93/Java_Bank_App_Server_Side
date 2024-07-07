@@ -45,19 +45,21 @@ public class TransferController {
 
     }
 */
-    @PostMapping
-    public Transfer sendTransfer(@Valid @RequestBody Transfer transferRequest) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        User fromUser = userDao.getUserByUsername(username);
-        User toUser = userDao.getUserById(transferRequest.getToAccountID());
+@PostMapping("/sendTransfer")
+public Transfer sendTransfer(@Valid @RequestBody Transfer transferRequest) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String username = authentication.getName();
+    User fromUser = userDao.getUserByUsername(username);
+    User toUser = userDao.getUserById(transferRequest.getToAccountID());
 
-        if (fromUser == null || toUser == null) {
-            throw new IllegalArgumentException("Invalid user ID.");
-        }
-        transferDao.sendTransfer(toUser.getUsername(), fromUser.getUsername(), transferRequest.getAmount());
-        return transferRequest;
+    if (fromUser == null || toUser == null) {
+        throw new IllegalArgumentException("Invalid user ID.");
     }
+
+    Transfer sentTransfer = transferDao.sendTransfer(toUser.getId(), fromUser.getId(), transferRequest.getAmount());
+
+    return sentTransfer;
+}
     /*
     @GetMapping(path = "/users/{id}/transfers")
 
@@ -73,21 +75,37 @@ public class TransferController {
     */
 
     //this needs the user id not user name
-    @GetMapping
+    @GetMapping("/transfers")
     public List<Transfer> getTransfers() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
 
-        return transferDao.getTransferByUsername(username);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        int userId = user.getId();
+
+        return transferDao.getTransfers(userId);
     }
     @GetMapping("/{transferId}")
-    public Transfer getTransferById(@PathVariable Long transferId) {
+    public Transfer getTransferById(@PathVariable int transferId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userDao.getUserByUsername(username);
 
-        return transferDao.getTransferByID(transferId.intValue(), username);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        Transfer transfer = transferDao.getTransferByID(transferId);
+
+        if (transfer != null && transfer.getTransferID() != user.getId()) {
+            throw new RuntimeException("Transfer not found for the authenticated user");
+        }
+
+        return transfer;
     }
 
 }

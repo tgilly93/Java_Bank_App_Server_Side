@@ -47,18 +47,20 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
 
     public Account getAccountByID(int id) {
         Account account = null;
-        String sql = "SELECT account_id, user_id, balance\n" +
-                "\tFROM public.account\n" +
-                "\tWhere account_id = ?;";
-        try{
+        String sql = "SELECT account_id, user_id, balance FROM public.account WHERE account_id = ?;";
+        try {
             SqlRowSet result = jdbcTemplate.queryForRowSet(sql, id);
-            if(result.next()){
+            if (result.next()) {
                 account = mapToAccount(result);
+            } else {
+                throw new DaoException("Account with ID " + id + " not found");
             }
         } catch (CannotGetJdbcConnectionException e) {
             throw new DaoException("Unable to connect to server or database", e);
         } catch (DataIntegrityViolationException e) {
             throw new DaoException("Data integrity violation", e);
+        } catch (Exception e) {
+            throw new DaoException("An unexpected error occurred", e);
         }
 
         return account;

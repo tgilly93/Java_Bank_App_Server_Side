@@ -113,7 +113,7 @@ public class TransferRequestController {
     @PostMapping("/{transferId}/reject")
     public Transfer rejectTransfer(@PathVariable int transferId) {
 
-        Transfer transfer = transferDao.getTransferByID(transferId);
+        Transfer transfer = TransferDao.getTransferByID(transferId);
 
         if (transfer == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Transfer not found.");
@@ -121,13 +121,13 @@ public class TransferRequestController {
 
         try {
 
-            transferDao.updateTransferStatus(transferId, "REJECTED");
+            TransferDao.updateTransferStatus(transferId, "REJECTED");
 
 
             int accountId = transfer.getFromAccountID();
             BigDecimal amount = transfer.getAmount();
 
-            AccountDao.updateAccount(accountId, amount.negate());
+            AccountDao.updateBalance(accountId, amount.negate());
 
 
             transfer.setTransferStatusID("REJECTED");

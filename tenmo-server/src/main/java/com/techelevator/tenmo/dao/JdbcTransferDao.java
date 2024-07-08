@@ -26,7 +26,7 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
     }
 
     @Override
-    public Account getAccountByID(int id) {
+    public Account getAccountByUserID(int id) {
        Account account = null;
        String sql = "SELECT account_id, user_id, balance\n" +
                "\tFROM public.account\n" +
@@ -43,6 +43,25 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
        }
 
        return account;
+    }
+
+    public Account getAccountByID(int id) {
+        Account account = null;
+        String sql = "SELECT account_id, user_id, balance\n" +
+                "\tFROM public.account\n" +
+                "\tWhere account_id = ?;";
+        try{
+            SqlRowSet result = jdbcTemplate.queryForRowSet(sql, id);
+            if(result.next()){
+                account = mapToAccount(result);
+            }
+        } catch (CannotGetJdbcConnectionException e) {
+            throw new DaoException("Unable to connect to server or database", e);
+        } catch (DataIntegrityViolationException e) {
+            throw new DaoException("Data integrity violation", e);
+        }
+
+        return account;
     }
 
     /*
@@ -65,13 +84,11 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
                 "\tSET balance=?\n" +
                 "\tWHERE account_id = ?;";
         try{
-            int rowsAffected = jdbcTemplate.update(sqlFromAccount,fromAccount.getAccountID(),fromAccount.getUserID()
-                    ,fromAccount.getBalance(),fromAccount.getAccountID());
+            int rowsAffected = jdbcTemplate.update(sqlFromAccount, fromAccount.getBalance(),fromAccount.getAccountID());
             if (rowsAffected == 0) {
                 throw new DaoException("Zero rows affected, expected at least one");
             }
-            rowsAffected = jdbcTemplate.update(sqlToAccount,toAccount.getAccountID(),toAccount.getUserID(),
-                    toAccount.getBalance(), toAccount.getAccountID());
+            rowsAffected = jdbcTemplate.update(sqlToAccount,toAccount.getBalance(), toAccount.getAccountID());
             if (rowsAffected == 0) {
                 throw new DaoException("Zero rows affected, expected at least one");
             }
@@ -127,7 +144,7 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         */
         // TODO- SEND TRANSFER METHOD
     @Override
-    public Transfer sendTransfer(int sendToId, int userId, BigDecimal amount) {
+    public Transfer sendTransfer(int sendToId, int fromID, BigDecimal amount) {
         Transfer transfer = null;
 
 
@@ -135,8 +152,8 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
        try{
            int statusID = insertTransferStatus("Approved");
            int typeID = insertTransferType("Send");
-           int fromAccountID = getAccountByID(userId).getAccountID();
-           int toAccountID = getAccountByID(sendToId).getAccountID();
+           int fromAccountID = getAccountByUserID(fromID).getAccountID();
+           int toAccountID = getAccountByUserID(sendToId).getAccountID();
 
            transfer = creatTransfer(typeID,statusID,fromAccountID,toAccountID,amount);
        }catch (CannotGetJdbcConnectionException e) {

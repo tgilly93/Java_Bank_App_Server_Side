@@ -251,11 +251,11 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
     @Override
     public List<Transfer> getPendingRequests(int userID) {
         List<Transfer> transfers = new ArrayList<>();
-        String sql = "SELECT transfer_id, transfer_type_id, transfer_status_id, account_from, account_to, amount\n" +
+        String sql = "SELECT transfer_id, transfer_type_id, transfer.transfer_status_id, account_from, account_to, amount\n" +
                 "\tFROM public.transfer\n" +
                 "\tjoin tenmo_user on user_id = account_from\n" +
                 "\tjoin transfer_status on transfer.transfer_status_id = transfer_status.transfer_status_id\n" +
-                "where user_id = ? and transfer_status_desc = pending;";
+                "where user_id = ? and transfer_status_desc = 'pending';";
         try{
             SqlRowSet results = jdbcTemplate.queryForRowSet(sql,userID);
             if(results.next()){
@@ -275,7 +275,7 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         Transfer transfer = null;
         String sql = "INSERT INTO public.transfer(\n" +
                 "\t transfer_type_id, transfer_status_id, account_from, account_to, amount)\n" +
-                "\tVALUES ( ?, ?, ?, ?, ?);";
+                "\tVALUES ( ?, ?, ?, ?, ?) RETURNING transfer_id;" ;
 
         try{
             int newTransferID = jdbcTemplate.queryForObject(sql,int.class,transfer_type_id,transfer_status_id,account_from,
@@ -300,8 +300,8 @@ public class JdbcTransferDao implements TransferDao, AccountDao{
         transfer.setTransferStatusID(results.getInt("transfer_status_id"));
         transfer.setTransferTypeID(results.getInt("transfer_type_id"));
         transfer.setTransferID(results.getInt("transfer_id"));
-        transfer.setFromUserName(userDao.getUserByAccountID(transfer.getFromAccountID()).getUsername());
-        transfer.setToUserName(userDao.getUserByAccountID(transfer.getToAccountID()).getUsername());
+       // transfer.setFromUserName(userDao.getUserByAccountID(transfer.getFromAccountID()).getUsername());
+        //transfer.setToUserName(userDao.getUserByAccountID(transfer.getToAccountID()).getUsername());
 
         return transfer;
     }

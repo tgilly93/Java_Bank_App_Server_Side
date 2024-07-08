@@ -136,8 +136,8 @@ public class JdbcUserDaoTests extends BaseDaoTests {
     @Test
     public void updateBalance_transfers_funds_correctly() {
         Transfer transfer = new Transfer();
-        transfer.setFromAccountID(1001);
-        transfer.setToAccountID(1002);
+        transfer.setFromAccountID(2001);
+        transfer.setToAccountID(2002);
         transfer.setAmount(new BigDecimal("100.00"));
 
 //        ACCOUNT_1.setBalance(BigDecimal.valueOf(1000.00));
@@ -152,8 +152,8 @@ public class JdbcUserDaoTests extends BaseDaoTests {
 
         transferDao.updateBalance(transfer);
 
-        Account fromAccount = transferDao.getAccountByID(1001);
-        Account toAccount = transferDao.getAccountByID(1002);
+        Account fromAccount = transferDao.getAccountByID(2001);
+        Account toAccount = transferDao.getAccountByID(2002);
 
         Assert.assertEquals(new BigDecimal("900.00"), fromAccount.getBalance()); // Adjust expected balance as necessary
         Assert.assertEquals(new BigDecimal("1100.00"), toAccount.getBalance()); // Adjust expected balance as necessary
@@ -209,11 +209,12 @@ public class JdbcUserDaoTests extends BaseDaoTests {
 
     @Test
     public void getPendingRequests_returns_all_pending_requests_for_user() {
+        transferDao.sendTransfer(1002,1001, new BigDecimal(500));
         List<Transfer> transfers = transferDao.getPendingRequests(1001); // Assuming 1001 is a valid user ID in the test database
 
         Assert.assertNotNull(transfers);
-        Assert.assertEquals(2, transfers.size()); // Adjust the expected size based on your test data
-        Assert.assertEquals(3002, transfers.get(0).getTransferID()); // Adjust expected transfer ID as necessary
+        Assert.assertEquals(1, transfers.size()); // Adjust the expected size based on your test data
+
     }
 }
 

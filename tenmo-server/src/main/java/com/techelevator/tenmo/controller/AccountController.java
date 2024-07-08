@@ -7,10 +7,10 @@ import com.techelevator.tenmo.dao.UserDao;
 import com.techelevator.tenmo.model.Account;
 import com.techelevator.tenmo.model.User;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
+
+
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
 
 
 
@@ -42,7 +47,7 @@ public class AccountController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + username);
         }
 
-        Account account = accountDao.getAccountByID(user.getId());
+        Account account = accountDao.getAccountByUserID(user.getId());
 
         if (account == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found for user: " + username);

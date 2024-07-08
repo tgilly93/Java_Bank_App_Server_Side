@@ -10,9 +10,7 @@ import com.techelevator.tenmo.model.User;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -116,7 +114,7 @@ public class JdbcUserDaoTests extends BaseDaoTests {
 
     @Test
     public void getAccountByID_given_valid_id_returns_account() {
-        Account account = transferDao.getAccountByID(2001); // Assuming 2001 is a valid account ID in the test database
+        Account account = transferDao.getAccountByUserID(2001); // Assuming 2001 is a valid account ID in the test database
 
         Assert.assertNotNull(account);
         Assert.assertEquals(2001, account.getAccountID());
@@ -132,8 +130,8 @@ public class JdbcUserDaoTests extends BaseDaoTests {
 
         transferDao.updateBalance(transfer);
 
-        Account fromAccount = transferDao.getAccountByID(2001);
-        Account toAccount = transferDao.getAccountByID(2002);
+        Account fromAccount = transferDao.getAccountByUserID(2001);
+        Account toAccount = transferDao.getAccountByUserID(2002);
 
         Assert.assertEquals(new BigDecimal("900.00"), fromAccount.getBalance()); // Adjust expected balance as necessary
         Assert.assertEquals(new BigDecimal("1100.00"), toAccount.getBalance()); // Adjust expected balance as necessary

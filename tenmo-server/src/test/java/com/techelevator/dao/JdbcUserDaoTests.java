@@ -19,6 +19,9 @@ public class JdbcUserDaoTests extends BaseDaoTests {
     protected static final User USER_1 = new User(1001, "user1", "user1", "USER");
     protected static final User USER_2 = new User(1002, "user2", "user2", "USER");
     private static final User USER_3 = new User(1003, "user3", "user3", "USER");
+    protected static final Account ACCOUNT_1 = new Account();
+    protected static final Account ACCOUNT_2 = new Account();
+    protected static final Account ACCOUNT_3 = new Account();
 
     private JdbcUserDao userDao;
     private JdbcTransferDao transferDao;
@@ -28,6 +31,15 @@ public class JdbcUserDaoTests extends BaseDaoTests {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         userDao = new JdbcUserDao(jdbcTemplate);
         transferDao = new JdbcTransferDao(jdbcTemplate, userDao);
+        ACCOUNT_1.setBalance(BigDecimal.valueOf(1000.00));
+        ACCOUNT_1.setAccountID(1001);
+        ACCOUNT_1.setUserID(1001);
+        ACCOUNT_2.setBalance(BigDecimal.valueOf(1000.00));
+        ACCOUNT_2.setAccountID(1002);
+        ACCOUNT_2.setUserID(1002);
+        ACCOUNT_3.setBalance(BigDecimal.valueOf(1000.00));
+        ACCOUNT_3.setAccountID(1003);
+        ACCOUNT_3.setUserID(1003);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -124,14 +136,27 @@ public class JdbcUserDaoTests extends BaseDaoTests {
     @Test
     public void updateBalance_transfers_funds_correctly() {
         Transfer transfer = new Transfer();
-        transfer.setFromAccountID(2001);
-        transfer.setToAccountID(2002);
+        transfer.setFromAccountID(1001);
+        transfer.setToAccountID(1002);
         transfer.setAmount(new BigDecimal("100.00"));
 
-        transferDao.updateBalance(transfer);
+//        ACCOUNT_1.setBalance(BigDecimal.valueOf(1000.00));
+//        ACCOUNT_1.setAccountID(1001);
+//        ACCOUNT_1.setUserID(1001);
+//        ACCOUNT_2.setBalance(BigDecimal.valueOf(1000.00));
+//        ACCOUNT_2.setAccountID(1002);
+//        ACCOUNT_2.setUserID(1002);
+//        ACCOUNT_3.setBalance(BigDecimal.valueOf(1000.00));
+//        ACCOUNT_3.setAccountID(1003);
+//        ACCOUNT_3.setUserID(1003);
 
+        transferDao.updateBalance(transfer);
+        
+        Account fromAccount = transferDao.getAccountByID(1001);
+        Account toAccount = transferDao.getAccountByID(1002)
         Account fromAccount = transferDao.getAccountByUserID(2001);
         Account toAccount = transferDao.getAccountByUserID(2002);
+
 
         Assert.assertEquals(new BigDecimal("900.00"), fromAccount.getBalance()); // Adjust expected balance as necessary
         Assert.assertEquals(new BigDecimal("1100.00"), toAccount.getBalance()); // Adjust expected balance as necessary

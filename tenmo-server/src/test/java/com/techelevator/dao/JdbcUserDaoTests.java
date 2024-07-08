@@ -151,12 +151,9 @@ public class JdbcUserDaoTests extends BaseDaoTests {
 //        ACCOUNT_3.setUserID(1003);
 
         transferDao.updateBalance(transfer);
-        
-        Account fromAccount = transferDao.getAccountByID(1001);
-        Account toAccount = transferDao.getAccountByID(1002)
-        Account fromAccount = transferDao.getAccountByUserID(2001);
-        Account toAccount = transferDao.getAccountByUserID(2002);
 
+        Account fromAccount = transferDao.getAccountByID(1001);
+        Account toAccount = transferDao.getAccountByID(1002);
 
         Assert.assertEquals(new BigDecimal("900.00"), fromAccount.getBalance()); // Adjust expected balance as necessary
         Assert.assertEquals(new BigDecimal("1100.00"), toAccount.getBalance()); // Adjust expected balance as necessary
